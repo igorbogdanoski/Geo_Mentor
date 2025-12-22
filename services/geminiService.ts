@@ -5,17 +5,26 @@ import { QuizQuestion, GeneratedLesson, GeneratedScenario } from "../types";
 // Helper to safely get the API client
 const getAiClient = () => {
   let apiKey = '';
-
+  
+  // DEBUGGING LOGS (Open F12 -> Console to see these)
+  console.log("--- GEMINI SERVICE DEBUG ---");
+  
   try {
     // 1. Try accessing via Vite standard (import.meta.env)
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env) {
       // @ts-ignore
-      apiKey = import.meta.env.VITE_API_KEY || '';
+      const viteKey = import.meta.env.VITE_API_KEY;
+      console.log("Checking import.meta.env.VITE_API_KEY:", viteKey ? "FOUND (Length: " + viteKey.length + ")" : "MISSING/UNDEFINED");
+      
+      if (viteKey) {
+        apiKey = viteKey;
+      }
     } 
     
     // 2. Fallback to standard process.env variants if import.meta didn't work
     if (!apiKey && typeof process !== 'undefined' && process.env) {
+      console.log("Checking process.env...");
       // Check common variable names used in Vercel/React/Next
       apiKey = process.env.VITE_API_KEY || 
                process.env.NEXT_PUBLIC_API_KEY || 
@@ -26,12 +35,21 @@ const getAiClient = () => {
     console.warn("Environment variable access error", e);
   }
 
-  // Trim whitespace just in case
-  apiKey = apiKey.trim();
+  // SANITIZATION:
+  if (apiKey) {
+      // 1. Trim whitespace
+      apiKey = apiKey.trim();
+      // 2. Remove surrounding quotes if user accidentally added them in Vercel (e.g. "AIzaSy...")
+      if ((apiKey.startsWith('"') && apiKey.endsWith('"')) || (apiKey.startsWith("'") && apiKey.endsWith("'"))) {
+        console.log("Auto-removing quotes from API Key...");
+        apiKey = apiKey.slice(1, -1);
+      }
+  }
 
   if (!apiKey) {
+    console.error("CRITICAL: API Key is empty after all checks.");
     // Detailed error message in Macedonian for the user
-    throw new Error("ГРЕШКА: Не е пронајден API клуч! Ве молиме одете во Vercel Settings -> Environment Variables и додадете променлива со име 'VITE_API_KEY' и вашиот Gemini API клуч.");
+    throw new Error("ГРЕШКА: Не е пронајден API клуч! Апликацијата не го гледа 'VITE_API_KEY'. ВЕ МОЛИМЕ НАПРАВЕТЕ 'REDEPLOY' ВО VERCEL ЗА ДА СЕ ОСВЕЖАТ ПРОМЕНИТЕ.");
   }
 
   return new GoogleGenAI({ apiKey });
