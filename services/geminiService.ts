@@ -4,12 +4,30 @@ import { QuizQuestion, GeneratedLesson, GeneratedScenario } from "../types";
 
 // Helper to safely get the API client
 const getAiClient = () => {
-  // Safe access to process.env for browser environments where it might not be defined
-  const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
+  // 1. Try accessing via Vite standard (import.meta.env)
+  // 2. Try accessing via Create React App standard (process.env.REACT_APP_)
+  // 3. Fallback to standard process.env (Node/Server)
+  
+  let apiKey = '';
+
+  try {
+    // @ts-ignore - Vite specific
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
+      // @ts-ignore
+      apiKey = import.meta.env.VITE_API_KEY;
+    } 
+    // Check standard process.env variants
+    else if (typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.VITE_API_KEY || process.env.REACT_APP_API_KEY || process.env.API_KEY || '';
+    }
+  } catch (e) {
+    console.warn("Environment variable access error", e);
+  }
 
   if (!apiKey) {
-    console.error("API_KEY is missing. Ensure it is set in your Vercel Environment Variables.");
-    throw new Error("API Key is missing. Please check your application settings.");
+    console.error("API_KEY is missing. Check Vercel Settings -> Environment Variables.");
+    console.error("Ensure variable is named 'VITE_API_KEY' for Vite projects.");
+    throw new Error("API Key is missing. Please configure VITE_API_KEY in Vercel settings.");
   }
 
   return new GoogleGenAI({ apiKey });
