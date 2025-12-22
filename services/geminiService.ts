@@ -9,21 +9,29 @@ const getAiClient = () => {
   try {
     // 1. Try accessing via Vite standard (import.meta.env)
     // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
       // @ts-ignore
-      apiKey = import.meta.env.VITE_API_KEY;
+      apiKey = import.meta.env.VITE_API_KEY || '';
     } 
-    // 2. Fallback to standard process.env variants (Node, CRA, or Vite with define)
-    else if (typeof process !== 'undefined' && process.env) {
-      apiKey = process.env.VITE_API_KEY || process.env.REACT_APP_API_KEY || process.env.API_KEY || '';
+    
+    // 2. Fallback to standard process.env variants if import.meta didn't work
+    if (!apiKey && typeof process !== 'undefined' && process.env) {
+      // Check common variable names used in Vercel/React/Next
+      apiKey = process.env.VITE_API_KEY || 
+               process.env.NEXT_PUBLIC_API_KEY || 
+               process.env.REACT_APP_API_KEY || 
+               process.env.API_KEY || '';
     }
   } catch (e) {
     console.warn("Environment variable access error", e);
   }
 
+  // Trim whitespace just in case
+  apiKey = apiKey.trim();
+
   if (!apiKey) {
-    // This error message will be shown to the user
-    throw new Error("Не е пронајден API клуч. Ако користите Vercel, додадете Environment Variable со име 'VITE_API_KEY'.");
+    // Detailed error message in Macedonian for the user
+    throw new Error("ГРЕШКА: Не е пронајден API клуч! Ве молиме одете во Vercel Settings -> Environment Variables и додадете променлива со име 'VITE_API_KEY' и вашиот Gemini API клуч.");
   }
 
   return new GoogleGenAI({ apiKey });
