@@ -7,11 +7,10 @@ const GeometryVisualizer: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Ref for the canvas element
+  // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Ref to store the current animation code string
+  const containerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>("");
-  // Ref to store the animation frame ID so we can cancel it
   const requestRef = useRef<number>(0);
   const frameRef = useRef<number>(0);
 
@@ -22,6 +21,35 @@ const GeometryVisualizer: React.FC = () => {
     "Тангента која се движи по кружница",
     "Симетрала на агол која се исцртува постепено"
   ];
+
+  // Responsive Canvas Sizing
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current && canvasRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        // Set actual canvas size to match display size for sharpness
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+        
+        // Redraw if paused to not lose the frame
+        if (!isPlaying && codeRef.current && frameRef.current > 0) {
+           // small hack to force one draw
+           const ctx = canvasRef.current.getContext('2d');
+           if (ctx) {
+             try {
+               const drawFunction = new Function('ctx', 'width', 'height', 'frame', codeRef.current);
+               drawFunction(ctx, width, height, frameRef.current);
+             } catch(e) {}
+           }
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isPlaying]);
 
   const animate = () => {
     const canvas = canvasRef.current;
@@ -89,7 +117,7 @@ const GeometryVisualizer: React.FC = () => {
       codeRef.current = code;
       setIsPlaying(true); // Auto start
     } catch (err: any) {
-      alert("Грешка при креирање на анимацијата: " + (err.message || "Непозната грешка"));
+      alert("Грешка: " + (err.message || "Непозната грешка"));
       
       // Clear Loading text if error
       if (canvas && canvas.getContext('2d')) {
@@ -97,7 +125,9 @@ const GeometryVisualizer: React.FC = () => {
           ctx?.clearRect(0, 0, canvas.width, canvas.height);
           if (ctx) {
              ctx.fillStyle = "#ef4444";
-             ctx.fillText("Грешка: Проверете API Key", canvas.width/2, canvas.height/2);
+             ctx.textAlign = "center";
+             ctx.font = "bold 14px Inter";
+             ctx.fillText("Грешка: Проверете API Key (VITE_API_KEY)", canvas.width/2, canvas.height/2);
           }
       }
     } finally {
@@ -121,9 +151,9 @@ const GeometryVisualizer: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-[500px]">
         {/* Controls */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
             <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Опис на анимацијата</label>
                 <textarea 
@@ -159,17 +189,15 @@ const GeometryVisualizer: React.FC = () => {
         </div>
 
         {/* Canvas Display */}
-        <div className="lg:col-span-2 flex flex-col">
-            <div className="relative flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-2xl border-4 border-slate-800 flex items-center justify-center min-h-[400px]">
+        <div className="lg:col-span-2 flex flex-col order-1 lg:order-2 h-full min-h-[300px]">
+            <div ref={containerRef} className="relative flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-2xl border-4 border-slate-800 flex items-center justify-center w-full h-full">
                 <canvas 
                     ref={canvasRef}
-                    width={600}
-                    height={400}
-                    className="bg-slate-900 w-full h-full object-contain"
+                    className="block"
                 />
                 
                 {/* Overlay Controls */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-slate-800/80 backdrop-blur p-2 rounded-full border border-slate-700">
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-slate-800/80 backdrop-blur p-2 rounded-full border border-slate-700 z-10">
                     <button 
                         onClick={() => setIsPlaying(!isPlaying)}
                         className="p-2 rounded-full bg-white text-slate-900 hover:bg-slate-200 transition-colors"
@@ -198,13 +226,13 @@ const GeometryVisualizer: React.FC = () => {
                 </div>
 
                 {loading && (
-                    <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center z-20">
                         <Loading message="AI црта..." />
                     </div>
                 )}
             </div>
             <p className="text-center text-xs text-slate-400 mt-2">
-                Анимацијата е генерирана со Canvas API. Може да содржи визуелни несовршености.
+                Анимацијата е генерирана со Canvas API и се прилагодува на екранот.
             </p>
         </div>
       </div>

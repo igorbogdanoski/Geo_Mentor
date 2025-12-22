@@ -79,8 +79,13 @@ const QuizMaker: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-           <strong>Грешка:</strong> {error}
+        <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 shadow-sm">
+           <div className="flex items-start gap-3">
+             <div className="text-xl">⚠️</div>
+             <div>
+                <strong>Грешка:</strong> {error}
+             </div>
+          </div>
         </div>
       )}
 

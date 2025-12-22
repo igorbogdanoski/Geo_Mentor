@@ -4,19 +4,16 @@ import { QuizQuestion, GeneratedLesson, GeneratedScenario } from "../types";
 
 // Helper to safely get the API client
 const getAiClient = () => {
-  // 1. Try accessing via Vite standard (import.meta.env)
-  // 2. Try accessing via Create React App standard (process.env.REACT_APP_)
-  // 3. Fallback to standard process.env (Node/Server)
-  
   let apiKey = '';
 
   try {
-    // @ts-ignore - Vite specific
+    // 1. Try accessing via Vite standard (import.meta.env)
+    // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
       // @ts-ignore
       apiKey = import.meta.env.VITE_API_KEY;
     } 
-    // Check standard process.env variants
+    // 2. Fallback to standard process.env variants (Node, CRA, or Vite with define)
     else if (typeof process !== 'undefined' && process.env) {
       apiKey = process.env.VITE_API_KEY || process.env.REACT_APP_API_KEY || process.env.API_KEY || '';
     }
@@ -25,9 +22,8 @@ const getAiClient = () => {
   }
 
   if (!apiKey) {
-    console.error("API_KEY is missing. Check Vercel Settings -> Environment Variables.");
-    console.error("Ensure variable is named 'VITE_API_KEY' for Vite projects.");
-    throw new Error("API Key is missing. Please configure VITE_API_KEY in Vercel settings.");
+    // This error message will be shown to the user
+    throw new Error("Не е пронајден API клуч. Ако користите Vercel, додадете Environment Variable со име 'VITE_API_KEY'.");
   }
 
   return new GoogleGenAI({ apiKey });
