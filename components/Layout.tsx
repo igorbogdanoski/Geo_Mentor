@@ -11,7 +11,7 @@ const Layout: React.FC<LayoutProps> = ({ currentMode, setMode, children }) => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 print:bg-white">
       {/* Sidebar - Hidden when printing */}
-      <aside className="w-full md:w-72 bg-indigo-900 text-white flex-shrink-0 transition-all print:hidden">
+      <aside className="w-full md:w-72 bg-indigo-900 text-white flex-shrink-0 transition-all print:hidden z-10">
         <div className="p-6 border-b border-indigo-800">
           <h1 className="text-xl font-bold flex items-center gap-2">
             <span className="text-3xl">📐</span> Гео-Ментор 7
@@ -61,8 +61,16 @@ const Layout: React.FC<LayoutProps> = ({ currentMode, setMode, children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-6 overflow-y-auto h-screen print:h-auto print:overflow-visible print:p-0">
-        <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl min-h-[90%] p-6 md:p-8 print:shadow-none print:max-w-none print:rounded-none">
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto h-screen print:h-auto print:overflow-visible print:p-0 relative">
+        {/* Geometric Background Pattern */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none print:hidden" 
+             style={{
+               backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)',
+               backgroundSize: '24px 24px'
+             }}>
+        </div>
+
+        <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl min-h-[90%] p-6 md:p-8 print:shadow-none print:max-w-none print:rounded-none relative z-0">
           {children}
         </div>
       </main>

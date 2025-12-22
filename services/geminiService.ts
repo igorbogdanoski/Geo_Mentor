@@ -222,15 +222,19 @@ export const generateCanvasAnimation = async (description: string): Promise<stri
       2. Draw geometry shapes clearly (lines, circles, triangles).
       3. Use 'frame' to create movement (e.g. rotation, translation).
       4. Use Math.sin/Math.cos for smooth geometric animations.
-      5. Set stroke styles and fill styles (use bright colors).
-      6. Do NOT include the function declaration wrapper, only the body code.
-      7. Do NOT use external libraries. Use standard Canvas API.
+      5. Set stroke styles (ctx.lineWidth = 2) and bright colors.
+      6. IMPORTANT: For geometry figures, LABEL vertices (A, B, C...) using ctx.fillText("A", x, y) where appropriate.
+      7. Use ctx.font = "bold 14px sans-serif" for labels.
+      8. Do NOT include the function declaration wrapper, only the body code.
+      9. Do NOT use external libraries. Use standard Canvas API.
       
       Example output format (string only):
       ctx.clearRect(0, 0, width, height);
       ctx.beginPath();
+      ctx.lineWidth = 2;
       ctx.arc(width/2, height/2, 50 + Math.sin(frame/20)*10, 0, Math.PI*2);
       ctx.stroke();
+      ctx.fillText("O", width/2 - 5, height/2 - 5);
     `;
 
     const response = await ai.models.generateContent({
