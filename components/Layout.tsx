@@ -8,17 +8,34 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ currentMode, setMode, children }) => {
+  
+  const handleSetApiKey = () => {
+    const currentKey = localStorage.getItem('gemini_api_key') || '';
+    const newKey = window.prompt("Внесете го вашиот Google Gemini API Key:", currentKey);
+    if (newKey !== null) {
+        if (newKey.trim() === '') {
+            localStorage.removeItem('gemini_api_key');
+            alert("API клучот е избришан од меморијата.");
+        } else {
+            localStorage.setItem('gemini_api_key', newKey.trim());
+            alert("API клучот е зачуван! Страницата ќе се освежи.");
+            window.location.reload();
+        }
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 print:bg-white">
       {/* Sidebar - Hidden when printing */}
-      <aside className="w-full md:w-72 bg-indigo-900 text-white flex-shrink-0 transition-all print:hidden z-10">
+      <aside className="w-full md:w-72 bg-indigo-900 text-white flex-shrink-0 transition-all print:hidden z-10 flex flex-col">
         <div className="p-6 border-b border-indigo-800">
           <h1 className="text-xl font-bold flex items-center gap-2">
             <span className="text-3xl">📐</span> Гео-Ментор 7
           </h1>
           <p className="text-xs text-indigo-300 mt-2">Геометрија за VII одделение</p>
         </div>
-        <nav className="p-4 space-y-2">
+        
+        <nav className="p-4 space-y-2 flex-1">
           <button
             onClick={() => setMode(AppMode.LESSON)}
             className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
@@ -52,11 +69,19 @@ const Layout: React.FC<LayoutProps> = ({ currentMode, setMode, children }) => {
             <span>🎨</span> AI Визуелизатор
           </button>
         </nav>
-        <div className="p-6 mt-auto">
+
+        <div className="p-4 border-t border-indigo-800 space-y-3">
            <div className="bg-indigo-800 rounded-lg p-3 text-xs text-indigo-200 border border-indigo-700">
-             <p className="font-bold mb-1">Ново!</p>
+             <p className="font-bold mb-1">Совет:</p>
              Користете го визуелизаторот за веднаш да ги видите геометриските форми како се движат.
            </div>
+           
+           <button 
+             onClick={handleSetApiKey}
+             className="w-full flex items-center justify-center gap-2 text-xs bg-indigo-950 hover:bg-indigo-800 text-indigo-300 py-2 rounded transition-colors border border-indigo-900"
+           >
+             <span>⚙️</span> API Подесувања
+           </button>
         </div>
       </aside>
 

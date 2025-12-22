@@ -5,57 +5,49 @@ import { QuizQuestion, GeneratedLesson, GeneratedScenario } from "../types";
 // Helper to safely get the API client
 const getAiClient = () => {
   let apiKey = '';
-  
-  // DEBUGGING LOGS (Open F12 -> Console to see these)
-  console.log("--- GEMINI SERVICE DEBUG ---");
-  
-  try {
-    // 1. Try accessing via Vite standard (import.meta.env)
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      // @ts-ignore
-      const viteKey = import.meta.env.VITE_API_KEY;
-      console.log("Checking import.meta.env.VITE_API_KEY:", viteKey ? "FOUND (Length: " + viteKey.length + ")" : "MISSING/UNDEFINED");
-      
-      if (viteKey) {
-        apiKey = viteKey;
-      }
-    } 
-    
-    // 2. Fallback to standard process.env variants if import.meta didn't work
-    if (!apiKey && typeof process !== 'undefined' && process.env) {
-      console.log("Checking process.env...");
-      // Check common variable names used in Vercel/React/Next
-      apiKey = process.env.VITE_API_KEY || 
-               process.env.NEXT_PUBLIC_API_KEY || 
-               process.env.REACT_APP_API_KEY || 
-               process.env.API_KEY || '';
-    }
-  } catch (e) {
-    console.warn("Environment variable access error", e);
+
+  // 1. Check VITE Environment Variable (Standard way)
+  // @ts-ignore
+  const envKey = import.meta.env.VITE_API_KEY;
+  if (envKey && typeof envKey === 'string' && !envKey.includes("CLIENT_KEY")) {
+      apiKey = envKey;
   }
 
-  // SANITIZATION:
-  if (apiKey) {
-      // 1. Trim whitespace
+  // 2. Check LocalStorage (Emergency Fallback)
+  if (!apiKey) {
+      if (typeof window !== 'undefined' && window.localStorage) {
+          const localKey = localStorage.getItem('gemini_api_key');
+          if (localKey) {
+              console.log("[GeminiService] Using API Key from LocalStorage");
+              apiKey = localKey;
+          }
+      }
+  }
+
+  // 3. Fallback to process.env
+  if (!apiKey && typeof process !== 'undefined' && process.env) {
+    apiKey = process.env.VITE_API_KEY || process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY || '';
+  }
+
+  // Debugging logs (visible in F12 Console)
+  if (!apiKey) {
+      console.warn("[GeminiService] API Key missing in Env and LocalStorage.");
+  } else {
+      // Clean up key
       apiKey = apiKey.trim();
-      // 2. Remove surrounding quotes if user accidentally added them in Vercel (e.g. "AIzaSy...")
       if ((apiKey.startsWith('"') && apiKey.endsWith('"')) || (apiKey.startsWith("'") && apiKey.endsWith("'"))) {
-        console.log("Auto-removing quotes from API Key...");
         apiKey = apiKey.slice(1, -1);
       }
   }
 
   if (!apiKey) {
-    console.error("CRITICAL: API Key is empty after all checks.");
-    // Detailed error message in Macedonian for the user
-    throw new Error("ГРЕШКА: Не е пронајден API клуч! Апликацијата не го гледа 'VITE_API_KEY'. ВЕ МОЛИМЕ НАПРАВЕТЕ 'REDEPLOY' ВО VERCEL ЗА ДА СЕ ОСВЕЖАТ ПРОМЕНИТЕ.");
+    throw new Error("API Клучот недостасува! Ве молиме кликнете на '⚙️ API Подесувања' во менито и внесете го рачно.");
   }
 
   return new GoogleGenAI({ apiKey });
 };
 
-// Common instruction for Math Formatting - UPDATED TO FORBID LATEX IN JSON
+// Common instruction for Math Formatting
 const MATH_INSTRUCTION = `
 ВАЖНО ЗА ФОРМАТИРАЊЕ И JSON (СТРОГИ ПРАВИЛА):
 1. Враќај ЧИТЛИВ ТЕКСТ.
@@ -85,8 +77,7 @@ const parseJsonSafe = (text: string) => {
     } catch (e) {
         console.warn("Standard JSON parse failed, attempting fallback...", e);
         try {
-            // 2. Fallback: If AI still messed up backslashes despite instructions
-            const fixed = clean.replace(/\\/g, '/'); // Replace all backslashes with forward slashes as a last resort
+            const fixed = clean.replace(/\\/g, '/');
             return JSON.parse(fixed);
         } catch (e2) {
             console.error("Auto-fix failed. Original text:", text);
