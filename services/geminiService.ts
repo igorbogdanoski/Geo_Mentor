@@ -7,10 +7,17 @@ const getAiClient = () => {
   let apiKey = '';
 
   // 1. Check VITE Environment Variable (Standard way)
-  // @ts-ignore
-  const envKey = import.meta.env.VITE_API_KEY;
-  if (envKey && typeof envKey === 'string' && !envKey.includes("CLIENT_KEY")) {
-      apiKey = envKey;
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      const envKey = import.meta.env.VITE_API_KEY;
+      if (envKey && typeof envKey === 'string' && !envKey.includes("CLIENT_KEY")) {
+          apiKey = envKey;
+      }
+    }
+  } catch (e) {
+    // Ignore execution environment errors if import.meta is not supported
   }
 
   // 2. Check LocalStorage (Emergency Fallback)
@@ -221,47 +228,57 @@ export const generateCanvasAnimation = async (description: string): Promise<stri
     const prompt = `
       Write a JavaScript function body for an HTML5 Canvas animation about: "${description}".
       
-      The function signature must be:
-      function draw(ctx, width, height, frame) { ... }
+      Function Signature:
+      function draw(ctx, width, height, frame, theme) { ... }
       
-      Parameters:
-      - ctx: CanvasRenderingContext2D
-      - width: Number (canvas width)
-      - height: Number (canvas height)
-      - frame: Number (incrementing frame counter for animation)
+      CRITICAL LAYOUT RULES (USE THE FULL SCREEN):
+      1. **Setup Colors**:
+         - Determine 'fg' (foreground) and 'bg' (background) based on 'theme'.
+         - 'light': bg='white', fg='#1e293b', accent='#ef4444' (Red).
+         - 'dark': bg='#0f172a', fg='#f1f5f9', accent='#38bdf8' (Sky).
+         - 'board': bg='#064e3b', fg='#e2e8f0', accent='#facc15' (Yellow).
+         
+      2. **Clear Canvas**: ctx.clearRect(0, 0, width, height);
       
-      Requirements:
-      1. Clear the canvas at the start: ctx.clearRect(0, 0, width, height);
-      2. Draw geometry shapes clearly (lines, circles, triangles).
-      3. Use 'frame' to create movement (e.g. rotation, translation).
-      4. Use Math.sin/Math.cos for smooth geometric animations.
-      5. Set stroke styles (ctx.lineWidth = 2) and bright colors.
-      6. IMPORTANT: For geometry figures, LABEL vertices (A, B, C...) using ctx.fillText("A", x, y) where appropriate.
-      7. Use ctx.font = "bold 14px sans-serif" for labels.
-      8. Do NOT include the function declaration wrapper, only the body code.
-      9. Do NOT use external libraries. Use standard Canvas API.
-      
-      Example output format (string only):
-      ctx.clearRect(0, 0, width, height);
-      ctx.beginPath();
-      ctx.lineWidth = 2;
-      ctx.arc(width/2, height/2, 50 + Math.sin(frame/20)*10, 0, Math.PI*2);
-      ctx.stroke();
-      ctx.fillText("O", width/2 - 5, height/2 - 5);
+      3. **SCALING (Make it HUGE)**:
+         - Center Point: const cx = width / 2; const cy = height / 2;
+         - **Scale Radius**: const R = Math.min(width, height) * 0.45; 
+         - Explanation: '0.45' radius means diameter is 0.9, filling 90% of the screen.
+         - **Drawing Logic**: All shapes must be drawn relative to 'cx, cy' and multiplied by 'R'.
+         - Example: A point at x=1 should be drawn at cx + 1*R.
+         
+      4. **Typography & Text (Push to edges)**:
+         - **Title**: Font size = Math.min(24, height*0.05). ctx.textAlign = "center".
+           Position: y = height * 0.08 (Top edge).
+         - **Formulas/Desc**: Font size = Math.min(20, height*0.04). ctx.textAlign = "center".
+           Position: y = height * 0.95 (Bottom edge).
+         - **Labels (A, B, C)**: Font size = Math.min(18, height*0.035). 
+           Draw labels slightly offset from vertices (e.g. R*1.1).
+         
+      5. **Animation**:
+         - Use 'frame' to animate properties (rotation, alpha, position).
+         - Example: const angle = frame * 0.02;
+         
+      6. **Styling**:
+         - Use 'ctx.save()' and 'ctx.restore()' when changing styles.
+         - Line Width: Main shapes = 4 (Bold), Guidelines = 2 (dashed).
+         - Points: Draw small filled circles (r=5) at vertices.
+
+      Output ONLY the function body code. No markdown.
     `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        systemInstruction: "You are an expert JavaScript Canvas developer. Return only valid raw JavaScript code for the function body.",
+        systemInstruction: "You are an expert HTML5 Canvas developer. You create clean, textbook-quality geometric illustrations that FILL THE SCREEN.",
       }
     });
 
-    // Strip markdown code blocks if present
     let code = response.text || "";
     code = code.replace(/```javascript/g, "").replace(/```js/g, "").replace(/```/g, "");
-    return code;
+    if(code.startsWith("javascript")) code = code.substring(10);
+    return code.trim();
   } catch (error: any) {
     console.error("Canvas generation error:", error);
     throw new Error(error.message || "Failed to generate animation");
