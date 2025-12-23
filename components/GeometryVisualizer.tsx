@@ -123,6 +123,7 @@ class SvgBuilder {
     beginPath() { this.currentPath = []; }
     moveTo(x: number, y: number) { this.currentPath.push(`M ${x} ${y}`); }
     lineTo(x: number, y: number) { this.currentPath.push(`L ${x} ${y}`); }
+    closePath() { this.currentPath.push("Z"); }
     
     arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise = false) {
         if (Math.abs(endAngle - startAngle) >= 2 * Math.PI - 0.001) {

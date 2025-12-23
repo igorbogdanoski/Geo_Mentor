@@ -156,6 +156,7 @@ export const generateScenarioContent = async (topic: string): Promise<GeneratedS
         - finalActivity: Завршна активност, рефлексија и домашна работа (околу 10 мин).
         - resources: Потребни средства и материјали.
         - assessment: Начини на следење на напредокот.
+        - imagePrompt: Краток опис на англиски јазик за геометриска илустрација што најдобро го опишува главниот концепт (пр. "Draw a triangle with height h").
       `;
   
       const response = await ai.models.generateContent({
@@ -269,6 +270,7 @@ export const generateCanvasAnimation = async (description: string): Promise<stri
          - Output standard ES6 JavaScript. NO TypeScript.
       7. **ANIMATION LOOP**:
          - The canvas is automatically cleared. Draw the frame.
+         - Ensure ctx.closePath() is called if ctx.beginPath() was used.
          
       IMPORTANT:
       - Output ONLY the code inside the function.

@@ -31,6 +31,7 @@ export interface GeneratedScenario {
   finalActivity: string; // Завршна активност
   resources: string; // Средства
   assessment: string; // Следење на напредокот
+  imagePrompt?: string; // Опис за автоматска илустрација
 }
 
 export enum AppMode {
