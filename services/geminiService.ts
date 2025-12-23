@@ -226,58 +226,78 @@ export const generateCanvasAnimation = async (description: string): Promise<stri
     const ai = getAiClient();
 
     const prompt = `
-      Write a JavaScript function body for an HTML5 Canvas animation about: "${description}".
+      Task: Create a JavaScript/HTML5 Canvas animation.
       
-      Function Signature:
-      function draw(ctx, width, height, frame, theme) { ... }
+      INPUT: "${description}"
       
-      CRITICAL LAYOUT RULES (USE THE FULL SCREEN):
-      1. **Setup Colors**:
-         - Determine 'fg' (foreground) and 'bg' (background) based on 'theme'.
-         - 'light': bg='white', fg='#1e293b', accent='#ef4444' (Red).
-         - 'dark': bg='#0f172a', fg='#f1f5f9', accent='#38bdf8' (Sky).
-         - 'board': bg='#064e3b', fg='#e2e8f0', accent='#facc15' (Yellow).
-         
-      2. **Clear Canvas**: ctx.clearRect(0, 0, width, height);
+      SUPPORTED INPUT FORMATS:
+      1. Natural Language (e.g., "Draw a triangle").
+      2. Python/Manim Code.
+      3. **ASYMPTOTE CODE**: If the user provides Asymptote code, TRANSLATE it into Canvas commands.
       
-      3. **SCALING (Make it HUGE)**:
-         - Center Point: const cx = width / 2; const cy = height / 2;
-         - **Scale Radius**: const R = Math.min(width, height) * 0.45; 
-         - Explanation: '0.45' radius means diameter is 0.9, filling 90% of the screen.
-         - **Drawing Logic**: All shapes must be drawn relative to 'cx, cy' and multiplied by 'R'.
-         - Example: A point at x=1 should be drawn at cx + 1*R.
+      The code will be executed inside a function body.
+      Available variables: 
+      - ctx (Context2D)
+      - width, height (Canvas dimensions)
+      - frame (Animation counter)
+      - theme (Current visual theme)
+      - showGrid (Boolean)
+      - primaryColor (String, User selected color. USE THIS for main lines!)
+      - registerShape(id, {type, x, y, r, w, h}, infoText) (Function to make shapes clickable)
+      - drawRotated(x, y, angle, drawFunction) (Helper to rotate an object around (x,y) without displacing it)
+      
+      RULES:
+      1. **COORDINATE LOGIC**: 
+         - Center: cx = width/2, cy = height/2.
+         - Scale: R = Math.min(width, height) * 0.45;
+         - Use absolute coordinates like: x = cx + Math.cos(a)*R.
+      2. **COLOR & STYLE**:
+         - **ALWAYS** use 'primaryColor' for the main geometric object.
+         - Use 'ctx.strokeStyle = primaryColor;'
+         - Use 'ctx.lineWidth = 3;' for main lines.
+      3. **INTERACTIVITY (MANDATORY)**:
+         - **EVERY** Point, Circle, or Polygon you draw MUST be registered for click detection.
+         - Example Point: \`registerShape('P1', {type:'point', x:cx, y:cy, r:10}, 'Center Point O');\`
+         - Example Circle: \`registerShape('C1', {type:'circle', x:cx, y:cy, r:R}, 'Circle k');\`
+      4. **ROTATION LOGIC (CRITICAL)**:
+         - **DO NOT** manually calculate cos/sin for rotation of the entire shape.
+         - **MUST USE** \`drawRotated(cx, cy, frame * 0.02, () => { ... drawing commands ... });\`
+         - This ensures the object rotates perfectly around the pivot (cx, cy) without drifting.
+      5. **CONSTRUCTION RULES**:
+         - For bisectors/intersections, ensure Radius > 0.5 * distance so arcs intersect clearly.
+      6. **STRICTLY JAVASCRIPT**: 
+         - Output standard ES6 JavaScript. NO TypeScript.
+      7. **ANIMATION LOOP**:
+         - The canvas is automatically cleared. Draw the frame.
          
-      4. **Typography & Text (Push to edges)**:
-         - **Title**: Font size = Math.min(24, height*0.05). ctx.textAlign = "center".
-           Position: y = height * 0.08 (Top edge).
-         - **Formulas/Desc**: Font size = Math.min(20, height*0.04). ctx.textAlign = "center".
-           Position: y = height * 0.95 (Bottom edge).
-         - **Labels (A, B, C)**: Font size = Math.min(18, height*0.035). 
-           Draw labels slightly offset from vertices (e.g. R*1.1).
-         
-      5. **Animation**:
-         - Use 'frame' to animate properties (rotation, alpha, position).
-         - Example: const angle = frame * 0.02;
-         
-      6. **Styling**:
-         - Use 'ctx.save()' and 'ctx.restore()' when changing styles.
-         - Line Width: Main shapes = 4 (Bold), Guidelines = 2 (dashed).
-         - Points: Draw small filled circles (r=5) at vertices.
-
-      Output ONLY the function body code. No markdown.
+      IMPORTANT:
+      - Output ONLY the code inside the function.
+      - DO NOT wrap it in "function draw() { ... }".
     `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        systemInstruction: "You are an expert HTML5 Canvas developer. You create clean, textbook-quality geometric illustrations that FILL THE SCREEN.",
+        systemInstruction: "You are an expert Geometry Engine. You translate English, Python, and ASYMPTOTE code into HTML5 Canvas JavaScript. You prioritize mathematical accuracy, interactivity, and style customization.",
       }
     });
 
     let code = response.text || "";
-    code = code.replace(/```javascript/g, "").replace(/```js/g, "").replace(/```/g, "");
+    
+    // 1. Remove Markdown
+    code = code.replace(/```javascript/g, "").replace(/```js/g, "").replace(/```/g, "").trim();
     if(code.startsWith("javascript")) code = code.substring(10);
+    
+    // 2. Remove Function Wrapper if present
+    if (code.includes("function draw") || code.includes("function")) {
+        const firstBrace = code.indexOf("{");
+        const lastBrace = code.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            code = code.substring(firstBrace + 1, lastBrace);
+        }
+    }
+    
     return code.trim();
   } catch (error: any) {
     console.error("Canvas generation error:", error);
